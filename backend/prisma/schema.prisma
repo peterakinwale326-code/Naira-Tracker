@@ -1,0 +1,68 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  passwordHash       String
+  name               String
+  role               String             @default("USER")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  savedCalculations  SavedCalculation[]
+}
+
+model SavedCalculation {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  amount           Float
+  baseYear         Int
+  targetYear       Int
+  equivalentAmount Float
+  lossPercent      Float
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+}
+
+model InflationData {
+  id           String   @id @default(uuid())
+  year         Int
+  month        Int      // 1-12
+  headlineRate Float    // Year-on-Year % (e.g. 33.88)
+  foodRate     Float    // Food sub-index YoY %
+  coreRate     Float    // Core (all items less farm produce)
+  cpiIndex     Float    // Composite CPI base index (e.g. 845.2)
+  momRate      Float?   // Month-on-Month % change
+  sourceUrl    String?
+  publishedAt  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([year, month], name: "unique_year_month")
+  @@index([year, month])
+}
+
+model CommodityPrice {
+  id          String   @id @default(uuid())
+  itemName    String   // e.g., "50kg Bag of Parboiled Rice", "1 Litre PMS Petrol"
+  category    String   // "FOOD_STAPLES", "ENERGY_FUEL", "HOUSING", "TRANSPORT", etc.
+  price       Float    // Price in NGN
+  unit        String   // e.g., "50kg", "1 Litre", "1 Tub"
+  marketState String   @default("Lagos") // Lagos, Abuja, Kano, Rivers, etc.
+  recordDate  DateTime
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([itemName, recordDate])
+  @@index([category])
+}
